@@ -90,7 +90,7 @@ sub processKey {
 			if ($v->get_type() == 3) {
 				my ($t0,$t1) = unpack("VV",substr($v->get_data(),0,8));
 				$t = ::getTime($t0,$t1);
-				::rptMsg($t."|BAM|||".$name." (".$key->get_name().")");
+				::rptMsg($t."|REG|||[Program Execution] BAM - ".$name." (".$key->get_name().")");
 			}
 		}
 	}		
