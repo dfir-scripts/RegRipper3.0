@@ -4,6 +4,7 @@
 # Output in TLN format
 #
 # Change history
+#   20260424 - only output MRU position 0 items in TLN output
 #   20260417 - created TLN version of comdlg32.pl module
 #   20200517 - updated date output format
 #   20180702 - update to parseGUID function
@@ -31,7 +32,7 @@ my %config = (hive          => "NTUSER\.DAT",
               hasDescr      => 0,
               hasRefs       => 0,
               osmask        => 22,
-              version       => 20260417);
+              version       => 20260424);
 
 sub getConfig{return %config}
 sub getShortDescr {
@@ -149,12 +150,11 @@ sub parseLastVisitedMRU {
 		if (exists $lvmru{MRUList}) {
 			@mrulist = split(//,$lvmru{MRUList});
 			delete($lvmru{MRUList});
-			foreach my $m (@mrulist) {
-				my ($file,$dir) = split(/\00\00/,$lvmru{$m},2);
-				$file =~ s/\00//g;
-				$dir  =~ s/\00//g;
-				::rptMsg($lw."|REG|||ComDlg32 - LastVisitedMRU - EXE: ".$file." - Last Dir: ".$dir);
-			}
+			my $m = $mrulist[0];
+			my ($file,$dir) = split(/\00\00/,$lvmru{$m},2);
+			$file =~ s/\00//g;
+			$dir  =~ s/\00//g;
+			::rptMsg($lw."|REG|||ComDlg32 - LastVisitedMRU - EXE: ".$file." - Last Dir: ".$dir);
 		}
 	}
 }
@@ -183,9 +183,8 @@ sub parseOpenSaveValues {
 		if (exists $osmru{MRUList}) {
 			my @mrulist = split(//,$osmru{MRUList});
 			delete($osmru{MRUList});
-			foreach my $m (@mrulist) {
-				::rptMsg($lw."|REG|||ComDlg32 - OpenSaveMRU\\".$name." - ".$osmru{$m});
-			}
+			my $m = $mrulist[0];
+			::rptMsg($lw."|REG|||ComDlg32 - OpenSaveMRU\\".$name." - ".$osmru{$m});
 		}
 	}
 }
@@ -193,10 +192,7 @@ sub parseOpenSaveValues {
 sub parseCIDSizeMRU {
 	my $key = shift;
 	my %lvmru;
-	my @mrulist;
 	my @vals = $key->get_list_of_values();
-	my %mru;
-	my $count = 0;
 	my $lw = $key->get_timestamp();
 
 	if (scalar(@vals) > 0) {
@@ -207,15 +203,9 @@ sub parseCIDSizeMRU {
 # Then, remove the MRUList value
 		if (exists $lvmru{MRUListEx}) {
 			my @mrulist = unpack("V*",$lvmru{MRUListEx});
-			foreach my $n (0..(scalar(@mrulist) - 2)) {
-				$mru{$count++} = $lvmru{$mrulist[$n]};
-			}
-			delete $mru{0xffffffff};
-			foreach my $m (sort {$a <=> $b} keys %mru) {
-				my $file = (split(/\00\00/,$mru{$m},2))[0];
-				$file =~ s/\00//g;
-				::rptMsg($lw."|REG|||ComDlg32 - CIDSizeMRU - ".$file);
-			}
+			my $file = (split(/\00\00/,$lvmru{$mrulist[0]},2))[0];
+			$file =~ s/\00//g;
+			::rptMsg($lw."|REG|||ComDlg32 - CIDSizeMRU - ".$file);
 		}
 	}
 }
@@ -223,10 +213,7 @@ sub parseCIDSizeMRU {
 sub parseFirstFolder {
 	my $key = shift;
 	my %lvmru;
-	my @mrulist;
 	my @vals = $key->get_list_of_values();
-	my %mru;
-	my $count = 0;
 	my $lw = $key->get_timestamp();
 
 	if (scalar(@vals) > 0) {
@@ -237,27 +224,21 @@ sub parseFirstFolder {
 # Then, remove the MRUList value
 		if (exists $lvmru{MRUListEx}) {
 			my @mrulist = unpack("V*",$lvmru{MRUListEx});
-			foreach my $n (0..(scalar(@mrulist) - 2)) {
-				$mru{$count++} = $lvmru{$mrulist[$n]};
+			my @files = split(/\00\00/,$lvmru{$mrulist[0]});
+			if (scalar(@files) == 0) {
+				# No files
 			}
-			delete $mru{0xffffffff};
-			foreach my $m (sort {$a <=> $b} keys %mru) {
-				my @files = split(/\00\00/,$mru{$m});
-				if (scalar(@files) == 0) {
-					# No files
+			elsif (scalar(@files) == 1) {
+				$files[0] =~ s/\00//g;
+				::rptMsg($lw."|REG|||ComDlg32 - FirstFolder - ".$files[0]);
+			}
+			elsif (scalar(@files) > 1) {
+				my @files2;
+				foreach my $file (@files) {
+					$file =~ s/\00//g;
+					push(@files2,$file);
 				}
-				elsif (scalar(@files) == 1) {
-					$files[0] =~ s/\00//g;
-					::rptMsg($lw."|REG|||ComDlg32 - FirstFolder - ".$files[0]);
-				}
-				elsif (scalar(@files) > 1) {
-					my @files2;
-					foreach my $file (@files) {
-						$file =~ s/\00//g;
-						push(@files2,$file);
-					}
-					::rptMsg($lw."|REG|||ComDlg32 - FirstFolder - ".join(' ',@files2));
-				}
+				::rptMsg($lw."|REG|||ComDlg32 - FirstFolder - ".join(' ',@files2));
 			}
 		}
 	}
@@ -266,10 +247,7 @@ sub parseFirstFolder {
 sub parseLastVisitedPidlMRU {
 	my $key = shift;
 	my %lvmru;
-	my @mrulist;
 	my @vals = $key->get_list_of_values();
-	my %mru;
-	my $count = 0;
 	my $lw = $key->get_timestamp();
 
 	if (scalar(@vals) > 0) {
@@ -280,18 +258,11 @@ sub parseLastVisitedPidlMRU {
 # Then, remove the MRUList value
 		if (exists $lvmru{MRUListEx}) {
 			my @mrulist = unpack("V*",$lvmru{MRUListEx});
-			foreach my $n (0..(scalar(@mrulist) - 2)) {
-				$mru{$count++} = $lvmru{$mrulist[$n]};
-			}
-			delete $mru{0xffffffff};
-
-			foreach my $m (sort {$a <=> $b} keys %mru) {
-				my ($file,$shell) = split(/\00\00/,$mru{$m},2);
-				$file =~ s/\00//g;
-				$shell =~ s/^\00//;
-				my $str = parseShellItem($shell);
-				::rptMsg($lw."|REG|||ComDlg32 - LastVisitedPidlMRU - ".$file." - ".$str);
-			}
+			my ($file,$shell) = split(/\00\00/,$lvmru{$mrulist[0]},2);
+			$file =~ s/\00//g;
+			$shell =~ s/^\00//;
+			my $str = parseShellItem($shell);
+			::rptMsg($lw."|REG|||ComDlg32 - LastVisitedPidlMRU - ".$file." - ".$str);
 		}
 	}
 }
@@ -312,8 +283,6 @@ sub parseOpenSavePidlMRU {
 
 			my %lvmru = ();
 			my @mrulist = ();
-			my %mru = ();
-			my $count = 0;
 
 
 			if (scalar(@vals) > 0) {
@@ -324,15 +293,8 @@ sub parseOpenSavePidlMRU {
 # Then, remove the MRUList value
 				if (exists $lvmru{MRUListEx}) {
 					my @mrulist = unpack("V*",$lvmru{MRUListEx});
-					foreach my $n (0..(scalar(@mrulist) - 2)) {
-						$mru{$count++} = $lvmru{$mrulist[$n]};
-					}
-					delete $mru{0xffffffff};
-
-					foreach my $m (sort {$a <=> $b} keys %mru) {
-						my $str = parseShellItem($mru{$m});
-						::rptMsg($lw."|REG|||ComDlg32 - OpenSavePidlMRU\\".$name." - ".$str);
-					}
+					my $str = parseShellItem($lvmru{$mrulist[0]});
+					::rptMsg($lw."|REG|||ComDlg32 - OpenSavePidlMRU\\".$name." - ".$str);
 				}
 			}
 		}
