@@ -1,19 +1,20 @@
 #-----------------------------------------------------------
-# bam_tln.pl
+# dam_tln.pl
 #
 # History:
-#  20180225 - created
+#  20260424 - cloned bam to create dam parser
 #
 # References:
 #  from Phill Moore via Twitter: https://padawan-4n6.hatenablog.com/entry/2018/02/22/131110
 #  https://twitter.com/aionescu/status/891172221971910661?lang=en
 #  http://batcmd.com/windows/10/services/bam/
+#  https://forensafe.com/blogs/bam.html
 # 
 # 
 # copyright 2018 Quantum Analytics Research, LLC
 # Author: H. Carvey, keydet89@yahoo.com
 #-----------------------------------------------------------
-package bam_tln;
+package dam_tln;
 use strict;
 
 my %config = (hive          => "System",
@@ -24,11 +25,11 @@ my %config = (hive          => "System",
               hasDescr      => 0,
               hasRefs       => 0,
               osmask        => 31,  #XP - Win7
-              version       => 20180225);
+              version       => 20260424);
 
 sub getConfig{return %config}
 sub getShortDescr {
-	return "Parse files from System hive BAM Services";	
+	return "Parse files from System hive DAM Services";	
 }
 sub getDescr{}
 sub getRefs {}
@@ -53,10 +54,10 @@ sub pluginmain {
 	if ($key = $root_key->get_subkey($key_path)) {
 		$current = $key->get_value("Current")->get_data();
 		$ccs = "ControlSet00".$current;
-		my $bam_path = $ccs."\\Services\\bam\\State\\UserSettings";
-		my $bam;
-		if ($bam = $root_key->get_subkey($bam_path)) {
-			my @sk = $bam->get_list_of_subkeys();
+		my $dam_path = $ccs."\\Services\\dam\\State\\UserSettings";
+		my $dam;
+		if ($dam = $root_key->get_subkey($dam_path)) {
+			my @sk = $dam->get_list_of_subkeys();
 			if (scalar(@sk) > 0) {
 				foreach my $s (@sk) {
 					processKey($s);
@@ -65,7 +66,7 @@ sub pluginmain {
 			
 		}
 		else {
-#			::rptMsg($bam_path." not found.");
+#			::rptMsg($dam_path." not found.");
 		}
 	}
 	else {
@@ -90,7 +91,7 @@ sub processKey {
 			if ($v->get_type() == 3) {
 				my ($t0,$t1) = unpack("VV",substr($v->get_data(),0,8));
 				$t = ::getTime($t0,$t1);
-				::rptMsg($t."|REG|||[Program Execution] BAM - ".$name." (".$key->get_name().")");
+				::rptMsg($t."|REG|||[Program Execution] DAM - ".$name." (".$key->get_name().")");
 			}
 		}
 	}		
